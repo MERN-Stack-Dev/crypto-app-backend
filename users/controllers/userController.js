@@ -1,4 +1,4 @@
-const User = require('../../models/userModel');
+const User = require('../models/userModel');
 const asyncHandler = require('express-async-handler');
 
 // Register a new user
@@ -76,10 +76,10 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
     // Ensure additionalData is an object
     if (req.body.additionalData) {
-      user.additionalData = {
-        ...(user.additionalData || {}),
-        ...req.body.additionalData
-      };
+      user.additionalData = new Map([
+        ...(user.additionalData ? Array.from(user.additionalData) : []),
+        ...Object.entries(req.body.additionalData),
+      ]);
     }
 
     const updatedUser = await user.save();
@@ -94,7 +94,6 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     res.status(404).json({ message: 'User not found' });
   }
 });
-
 
 // Reset user password
 const resetPassword = asyncHandler(async (req, res) => {
