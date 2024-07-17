@@ -1,22 +1,28 @@
-const User = require('../models/userModel');
 const asyncHandler = require('express-async-handler');
+const {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  updateUserById,
+  resetUserPassword,
+} = require('../services/userService');
 
 // Register a new user
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, additionalData } = req.body;
 
-  const userExists = await User.findOne({ email });
+  const userExists = await findUserByEmail(email);
 
   if (userExists) {
     res.status(400).json({ message: 'User already exists' });
     return;
   }
 
-  const user = await User.create({
+  const user = await createUser({
     name,
     email,
     password,
-    additionalData: additionalData || {}, // Handle additionalData
+    additionalData: additionalData || {},
   });
 
   if (user) {
@@ -35,7 +41,7 @@ const registerUser = asyncHandler(async (req, res) => {
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await findUserByEmail(email);
 
   if (user && user.password === password) {
     res.json({
@@ -51,7 +57,7 @@ const authUser = asyncHandler(async (req, res) => {
 
 // Get user profile
 const getUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const user = await findUserById(req.params.id);
 
   if (user) {
     res.json({
@@ -67,28 +73,21 @@ const getUserProfile = asyncHandler(async (req, res) => {
 
 // Update user profile
 const updateUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const updateData = {
+    name: req.body.name,
+    email: req.body.email,
+    password: req.body.password,
+    additionalData: req.body.additionalData,
+  };
+
+  const user = await updateUserById(req.params.id, updateData);
 
   if (user) {
-    user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
-    user.password = req.body.password || user.password;
-
-    // Ensure additionalData is an object
-    if (req.body.additionalData) {
-      user.additionalData = new Map([
-        ...(user.additionalData ? Array.from(user.additionalData) : []),
-        ...Object.entries(req.body.additionalData),
-      ]);
-    }
-
-    const updatedUser = await user.save();
-
     res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      additionalData: updatedUser.additionalData,
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      additionalData: user.additionalData,
     });
   } else {
     res.status(404).json({ message: 'User not found' });
@@ -99,11 +98,9 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 const resetPassword = asyncHandler(async (req, res) => {
   const { email, newPassword } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await resetUserPassword(email, newPassword);
 
   if (user) {
-    user.password = newPassword;
-    await user.save();
     res.status(200).json({ message: 'Password reset successful' });
   } else {
     res.status(404).json({ message: 'User not found' });
@@ -113,7 +110,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 // Get specific data from user's additionalData
 const getUserSpecificData = asyncHandler(async (req, res) => {
   const { id, key } = req.params;
-  const user = await User.findById(id);
+  const user = await findUserById(id);
 
   if (user) {
     const value = user.additionalData.get(key);

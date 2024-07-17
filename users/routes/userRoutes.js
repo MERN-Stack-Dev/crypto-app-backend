@@ -17,3 +17,4 @@ router.get('/:id', getUserProfile);
 router.put('/:id', updateUserProfile);
 
 module.exports = router;
+
