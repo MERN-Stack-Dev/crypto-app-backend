@@ -1,6 +1,0 @@
-post ('/', registerUser)
-post ('/login', authUser)
-get ('/:id', getUserProfile)
-put ('/:id', updateUserProfile)
-post ('/resetpassword', resetPassword)
-
