@@ -1,9 +1,9 @@
-const User = require('../models/userModel');
+const User = require('../../models/userModel');
 const asyncHandler = require('express-async-handler');
 
 // Register a new user
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, additionalData } = req.body;
 
   const userExists = await User.findOne({ email });
 
@@ -16,6 +16,7 @@ const registerUser = asyncHandler(async (req, res) => {
     name,
     email,
     password,
+    additionalData: additionalData || {}, // Handle additionalData
   });
 
   if (user) {
@@ -23,6 +24,7 @@ const registerUser = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      additionalData: user.additionalData,
     });
   } else {
     res.status(400).json({ message: 'Invalid user data' });
@@ -40,6 +42,7 @@ const authUser = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      additionalData: user.additionalData,
     });
   } else {
     res.status(401).json({ message: 'Invalid email or password' });
@@ -55,6 +58,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      additionalData: user.additionalData,
     });
   } else {
     res.status(404).json({ message: 'User not found' });
@@ -70,17 +74,27 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     user.email = req.body.email || user.email;
     user.password = req.body.password || user.password;
 
+    // Ensure additionalData is an object
+    if (req.body.additionalData) {
+      user.additionalData = {
+        ...(user.additionalData || {}),
+        ...req.body.additionalData
+      };
+    }
+
     const updatedUser = await user.save();
 
     res.json({
       _id: updatedUser._id,
       name: updatedUser.name,
       email: updatedUser.email,
+      additionalData: updatedUser.additionalData,
     });
   } else {
     res.status(404).json({ message: 'User not found' });
   }
 });
+
 
 // Reset user password
 const resetPassword = asyncHandler(async (req, res) => {
@@ -97,10 +111,24 @@ const resetPassword = asyncHandler(async (req, res) => {
   }
 });
 
+// Get specific data from user's additionalData
+const getUserSpecificData = asyncHandler(async (req, res) => {
+  const { id, key } = req.params;
+  const user = await User.findById(id);
+
+  if (user) {
+    const value = user.additionalData.get(key);
+    res.json({ [key]: value });
+  } else {
+    res.status(404).json({ message: 'User not found' });
+  }
+});
+
 module.exports = {
   registerUser,
   authUser,
   getUserProfile,
   updateUserProfile,
   resetPassword,
+  getUserSpecificData,
 };
